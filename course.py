@@ -3,9 +3,11 @@ import random
 
 pygame.init()
 
+INVERSER_TACTILE = True
+
 LARGEUR, HAUTEUR = 400, 600
 ecran = pygame.display.set_mode((LARGEUR, HAUTEUR))
-pygame.display.set_caption("Challenge of Vicentia - Course")
+pygame.display.set_caption("Road Rush - Challenge of Vicentia")
 
 BLANC = (255, 255, 255)
 NOIR = (0, 0, 0)
@@ -23,7 +25,7 @@ ROUGE_FEU = (200, 40, 40)
 JAUNE_FEU = (220, 200, 50)
 
 horloge = pygame.time.Clock()
-police = pygame.font.SysFont(None, 36)
+police = pygame.font.SysFont(None, 32)
 police_petite = pygame.font.SysFont(None, 28)
 
 ROUTE_MARGE = 20
@@ -48,7 +50,18 @@ en_cours = True
 
 decalage_ligne = 0
 timer_feu = 0
-etat_feu = 0  # 0=rouge, 1=jaune, 2=vert
+etat_feu = 0
+
+
+def charger_meilleur_score():
+    try:
+        with open("meilleur_score.txt", "r") as f:
+            return int(f.read())
+    except:
+        return 0
+
+
+meilleur_score = charger_meilleur_score()
 
 
 def dessiner_voiture(x, y, couleur):
@@ -60,7 +73,7 @@ def dessiner_voiture(x, y, couleur):
     pygame.draw.rect(ecran, NOIR, (x + voiture_largeur - 4, y + voiture_hauteur - 30, 8, 20))
 
 
-def dessiner_maison(x, y, cote):
+def dessiner_maison(x, y):
     largeur_maison, hauteur_maison = 45, 45
     pygame.draw.rect(ecran, MARRON, (x, y, largeur_maison, hauteur_maison))
     pygame.draw.polygon(ecran, TOIT, [
@@ -107,10 +120,13 @@ while en_cours:
         va_droite = touches[pygame.K_RIGHT]
 
         if boutons_souris[0]:
-            if pos_souris[0] < LARGEUR // 2:
-                va_droite = True
-            else:
+            touche_gauche_ecran = pos_souris[0] < LARGEUR // 2
+            if INVERSER_TACTILE:
+                touche_gauche_ecran = not touche_gauche_ecran
+            if touche_gauche_ecran:
                 va_gauche = True
+            else:
+                va_droite = True
 
         if va_gauche and voiture_x > ROUTE_MARGE:
             voiture_x -= vitesse_voiture
@@ -143,8 +159,8 @@ while en_cours:
         timer_maison += 1
         if timer_maison > 70:
             timer_maison = 0
-            maisons.append([5, -50, "gauche"])
-            maisons.append([LARGEUR - 50, -50, "droite"])
+            maisons.append([5, -50])
+            maisons.append([LARGEUR - 50, -50])
 
         for maison in maisons[:]:
             maison[1] += vitesse_obstacles
@@ -159,7 +175,7 @@ while en_cours:
     dessiner_route()
 
     for maison in maisons:
-        dessiner_maison(maison[0], maison[1], maison[2])
+        dessiner_maison(maison[0], maison[1])
 
     dessiner_feu()
 
@@ -168,8 +184,8 @@ while en_cours:
     for item in obstacles:
         dessiner_voiture(item[0].x, item[0].y, item[1])
 
-    texte_score = police.render(f"Score : {score}", True, NOIR)
-    ecran.blit(texte_score, (ROUTE_MARGE + 10, 90))
+    texte_score = police.render(f"Score : {score}  |  Record : {max(score, meilleur_score)}", True, NOIR)
+    ecran.blit(texte_score, (ROUTE_MARGE + 5, 90))
 
     texte_gauche = police_petite.render("< Gauche", True, BLANC)
     texte_droite = police_petite.render("Droite >", True, BLANC)
@@ -178,12 +194,16 @@ while en_cours:
 
     if not jeu_actif:
         texte_gameover = police.render("GAME OVER", True, ROUGE)
-        ecran.blit(texte_gameover, (LARGEUR // 2 - 90, HAUTEUR // 2))
+        ecran.blit(texte_gameover, (LARGEUR // 2 - 80, HAUTEUR // 2))
 
     pygame.display.flip()
     horloge.tick(60)
 
 pygame.quit()
+
+if score > meilleur_score:
+    with open("meilleur_score.txt", "w") as f:
+        f.write(str(score))
 
 with open("scores.txt", "a") as f:
     f.write(f"Course : {score} points\n")
