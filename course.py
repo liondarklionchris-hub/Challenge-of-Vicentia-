@@ -1,5 +1,6 @@
 import pygame
 import random
+import os
 
 pygame.init()
 
@@ -12,14 +13,7 @@ pygame.display.set_caption("Road Rush - Challenge of Vicentia")
 BLANC = (255, 255, 255)
 NOIR = (0, 0, 0)
 ROUGE = (220, 50, 50)
-BLEU = (50, 100, 220)
-GRIS = (90, 90, 90)
 VERT = (60, 140, 60)
-VITRE = (180, 220, 255)
-JAUNE = (230, 200, 60)
-VIOLET = (150, 70, 180)
-MARRON = (140, 90, 60)
-TOIT = (170, 60, 50)
 VERT_FEU = (60, 200, 60)
 ROUGE_FEU = (200, 40, 40)
 JAUNE_FEU = (220, 200, 50)
@@ -28,27 +22,43 @@ horloge = pygame.time.Clock()
 police = pygame.font.SysFont(None, 32)
 police_petite = pygame.font.SysFont(None, 28)
 
-ROUTE_MARGE = 20
+DOSSIER = "assets/PNG"
 
 voiture_largeur, voiture_hauteur = 50, 90
+
+
+def charger_image(chemin, largeur, hauteur):
+    img = pygame.image.load(chemin).convert_alpha()
+    return pygame.transform.smoothscale(img, (largeur, hauteur))
+
+
+img_joueur = charger_image(f"{DOSSIER}/Cars/car_blue_1.png", voiture_largeur, voiture_hauteur)
+
+noms_ennemis = ["car_red_1.png", "car_black_1.png", "car_green_1.png"]
+imgs_ennemis = [charger_image(f"{DOSSIER}/Cars/{nom}", voiture_largeur, voiture_hauteur) for nom in noms_ennemis]
+
+img_route = charger_image(f"{DOSSIER}/Tiles/Asphalt road/road_asphalt01.png", 80, 80)
+img_arbre = charger_image(f"{DOSSIER}/Objects/tree_large.png", 40, 55)
+
+ROUTE_MARGE = 20
+
 voiture_x = LARGEUR // 2 - voiture_largeur // 2
 voiture_y = HAUTEUR - 120
 vitesse_voiture = 8
 
-obstacle_largeur, obstacle_hauteur = 50, 90
+obstacle_largeur, obstacle_hauteur = voiture_largeur, voiture_hauteur
 obstacles = []
-couleurs_obstacles = [ROUGE, JAUNE, VIOLET]
 vitesse_obstacles = 6
 timer_spawn = 0
 
-maisons = []
-timer_maison = 0
+arbres = []
+timer_arbre = 0
 
 score = 0
 jeu_actif = True
 en_cours = True
 
-decalage_ligne = 0
+decalage_route = 0
 timer_feu = 0
 etat_feu = 0
 
@@ -64,37 +74,12 @@ def charger_meilleur_score():
 meilleur_score = charger_meilleur_score()
 
 
-def dessiner_voiture(x, y, couleur):
-    pygame.draw.rect(ecran, couleur, (x, y, voiture_largeur, voiture_hauteur), border_radius=10)
-    pygame.draw.rect(ecran, VITRE, (x + 8, y + 10, voiture_largeur - 16, 20), border_radius=5)
-    pygame.draw.rect(ecran, NOIR, (x - 4, y + 10, 8, 20))
-    pygame.draw.rect(ecran, NOIR, (x + voiture_largeur - 4, y + 10, 8, 20))
-    pygame.draw.rect(ecran, NOIR, (x - 4, y + voiture_hauteur - 30, 8, 20))
-    pygame.draw.rect(ecran, NOIR, (x + voiture_largeur - 4, y + voiture_hauteur - 30, 8, 20))
-
-
-def dessiner_maison(x, y):
-    largeur_maison, hauteur_maison = 45, 45
-    pygame.draw.rect(ecran, MARRON, (x, y, largeur_maison, hauteur_maison))
-    pygame.draw.polygon(ecran, TOIT, [
-        (x - 5, y),
-        (x + largeur_maison // 2, y - 20),
-        (x + largeur_maison + 5, y)
-    ])
-    pygame.draw.rect(ecran, VITRE, (x + 8, y + 10, 10, 10))
-    pygame.draw.rect(ecran, VITRE, (x + largeur_maison - 18, y + 10, 10, 10))
-    pygame.draw.rect(ecran, (100, 60, 30), (x + largeur_maison // 2 - 6, y + 20, 12, 25))
-
-
 def dessiner_route():
     ecran.fill(VERT)
-    pygame.draw.rect(ecran, GRIS, (ROUTE_MARGE, 0, LARGEUR - ROUTE_MARGE * 2, HAUTEUR))
+    pygame.draw.rect(ecran, (90, 90, 90), (ROUTE_MARGE, 0, LARGEUR - ROUTE_MARGE * 2, HAUTEUR))
 
-    for y in range(-40, HAUTEUR, 40):
-        pygame.draw.line(ecran, BLANC, (LARGEUR // 2, y + decalage_ligne), (LARGEUR // 2, y + 20 + decalage_ligne), 4)
-
-    pygame.draw.line(ecran, JAUNE, (ROUTE_MARGE, 0), (ROUTE_MARGE, HAUTEUR), 3)
-    pygame.draw.line(ecran, JAUNE, (LARGEUR - ROUTE_MARGE, 0), (LARGEUR - ROUTE_MARGE, HAUTEUR), 3)
+    for y in range(-80, HAUTEUR, 80):
+        ecran.blit(img_route, (ROUTE_MARGE, y + decalage_route))
 
 
 def dessiner_feu():
@@ -133,7 +118,7 @@ while en_cours:
         if va_droite and voiture_x < LARGEUR - ROUTE_MARGE - voiture_largeur:
             voiture_x += vitesse_voiture
 
-        decalage_ligne = (decalage_ligne + vitesse_obstacles) % 40
+        decalage_route = (decalage_route + vitesse_obstacles) % 80
 
         timer_feu += 1
         if timer_feu > 90:
@@ -144,9 +129,9 @@ while en_cours:
         if timer_spawn > 40:
             timer_spawn = 0
             x_obstacle = random.randint(ROUTE_MARGE, LARGEUR - ROUTE_MARGE - obstacle_largeur)
-            couleur = random.choice(couleurs_obstacles)
+            img_choisie = random.choice(imgs_ennemis)
             rect = pygame.Rect(x_obstacle, -obstacle_hauteur, obstacle_largeur, obstacle_hauteur)
-            obstacles.append([rect, couleur])
+            obstacles.append([rect, img_choisie])
 
         for item in obstacles[:]:
             item[0].y += vitesse_obstacles
@@ -156,16 +141,16 @@ while en_cours:
                 if score % 5 == 0:
                     vitesse_obstacles += 1
 
-        timer_maison += 1
-        if timer_maison > 70:
-            timer_maison = 0
-            maisons.append([5, -50])
-            maisons.append([LARGEUR - 50, -50])
+        timer_arbre += 1
+        if timer_arbre > 60:
+            timer_arbre = 0
+            arbres.append([2, -60])
+            arbres.append([LARGEUR - 42, -60])
 
-        for maison in maisons[:]:
-            maison[1] += vitesse_obstacles
-            if maison[1] > HAUTEUR:
-                maisons.remove(maison)
+        for arbre in arbres[:]:
+            arbre[1] += vitesse_obstacles
+            if arbre[1] > HAUTEUR:
+                arbres.remove(arbre)
 
         voiture_rect = pygame.Rect(voiture_x, voiture_y, voiture_largeur, voiture_hauteur)
         for item in obstacles:
@@ -174,15 +159,15 @@ while en_cours:
 
     dessiner_route()
 
-    for maison in maisons:
-        dessiner_maison(maison[0], maison[1])
+    for arbre in arbres:
+        ecran.blit(img_arbre, (arbre[0], arbre[1]))
 
     dessiner_feu()
 
-    dessiner_voiture(voiture_x, voiture_y, BLEU)
+    ecran.blit(img_joueur, (voiture_x, voiture_y))
 
     for item in obstacles:
-        dessiner_voiture(item[0].x, item[0].y, item[1])
+        ecran.blit(item[1], (item[0].x, item[0].y))
 
     texte_score = police.render(f"Score : {score}  |  Record : {max(score, meilleur_score)}", True, NOIR)
     ecran.blit(texte_score, (ROUTE_MARGE + 5, 90))
