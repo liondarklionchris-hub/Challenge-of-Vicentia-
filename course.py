@@ -12,6 +12,7 @@ NOIR = (0, 0, 0)
 ROUGE = (220, 50, 50)
 BLEU = (50, 100, 220)
 GRIS = (100, 100, 100)
+VITRE = (180, 220, 255)
 
 horloge = pygame.time.Clock()
 police = pygame.font.SysFont(None, 36)
@@ -29,6 +30,16 @@ timer_spawn = 0
 score = 0
 jeu_actif = True
 en_cours = True
+
+
+def dessiner_voiture(x, y):
+    pygame.draw.rect(ecran, BLEU, (x, y, voiture_largeur, voiture_hauteur), border_radius=10)
+    pygame.draw.rect(ecran, VITRE, (x + 8, y + 10, voiture_largeur - 16, 20), border_radius=5)
+    pygame.draw.rect(ecran, NOIR, (x - 4, y + 10, 8, 20))
+    pygame.draw.rect(ecran, NOIR, (x + voiture_largeur - 4, y + 10, 8, 20))
+    pygame.draw.rect(ecran, NOIR, (x - 4, y + voiture_hauteur - 30, 8, 20))
+    pygame.draw.rect(ecran, NOIR, (x + voiture_largeur - 4, y + voiture_hauteur - 30, 8, 20))
+
 
 while en_cours:
     for event in pygame.event.get():
@@ -65,10 +76,10 @@ while en_cours:
     ecran.fill(GRIS)
     pygame.draw.line(ecran, BLANC, (LARGEUR // 2, 0), (LARGEUR // 2, HAUTEUR), 4)
 
-    pygame.draw.rect(ecran, BLEU, (voiture_x, voiture_y, voiture_largeur, voiture_hauteur))
+    dessiner_voiture(voiture_x, voiture_y)
 
     for obs in obstacles:
-        pygame.draw.rect(ecran, ROUGE, obs)
+        pygame.draw.rect(ecran, ROUGE, obs, border_radius=6)
 
     texte_score = police.render(f"Score : {score}", True, NOIR)
     ecran.blit(texte_score, (10, 10))
