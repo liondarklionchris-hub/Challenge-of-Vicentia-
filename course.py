@@ -16,6 +16,7 @@ VITRE = (180, 220, 255)
 
 horloge = pygame.time.Clock()
 police = pygame.font.SysFont(None, 36)
+police_petite = pygame.font.SysFont(None, 28)
 
 voiture_largeur, voiture_hauteur = 50, 90
 voiture_x = LARGEUR // 2 - voiture_largeur // 2
@@ -47,11 +48,22 @@ while en_cours:
             en_cours = False
 
     touches = pygame.key.get_pressed()
+    boutons_souris = pygame.mouse.get_pressed()
+    pos_souris = pygame.mouse.get_pos()
 
     if jeu_actif:
-        if touches[pygame.K_LEFT] and voiture_x > 0:
+        va_gauche = touches[pygame.K_LEFT]
+        va_droite = touches[pygame.K_RIGHT]
+
+        if boutons_souris[0]:
+            if pos_souris[0] < LARGEUR // 2:
+                va_gauche = True
+            else:
+                va_droite = True
+
+        if va_gauche and voiture_x > 0:
             voiture_x -= vitesse_voiture
-        if touches[pygame.K_RIGHT] and voiture_x < LARGEUR - voiture_largeur:
+        if va_droite and voiture_x < LARGEUR - voiture_largeur:
             voiture_x += vitesse_voiture
 
         timer_spawn += 1
@@ -83,6 +95,11 @@ while en_cours:
 
     texte_score = police.render(f"Score : {score}", True, NOIR)
     ecran.blit(texte_score, (10, 10))
+
+    texte_gauche = police_petite.render("< Gauche", True, BLANC)
+    texte_droite = police_petite.render("Droite >", True, BLANC)
+    ecran.blit(texte_gauche, (10, HAUTEUR - 30))
+    ecran.blit(texte_droite, (LARGEUR - 110, HAUTEUR - 30))
 
     if not jeu_actif:
         texte_gameover = police.render("GAME OVER", True, ROUGE)
